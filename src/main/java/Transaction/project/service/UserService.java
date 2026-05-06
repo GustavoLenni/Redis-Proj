@@ -1,33 +1,51 @@
 package Transaction.project.service;
-
-
 import Transaction.project.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
+
 
 @Service
 public class UserService {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     public User createUser(User user){
-        Long id = null;
-        try {
-            id = redisTemplate.opsForValue().increment("user:id");
-            System.out.println("ID GERADO: " + id);
-        } catch (Exception e) {
+        String id = generateUserId();
+        user.setId(id);
+        String key = generateUserKey(id);
+
+        try{
+            String userJson = objectMapper.writeValueAsString(user);
+            redisTemplate.opsForValue().set(key,userJson);
+        }catch (Exception e){
             e.printStackTrace();
         }
-        user.setId(String.valueOf(id));
-        String key = "user:" + user.getId();
-
-        redisTemplate.opsForHash().put(key,"id", user.getId());
-        redisTemplate.opsForHash().put(key,"name", user.getName());
-        redisTemplate.opsForHash().put(key,"password", user.getPassword());
-        redisTemplate.opsForHash().put(key,"balance", String.valueOf(user.getBalance()));
-        System.out.println("Criando usuário...");
-
         return user;
+    }
+    public User getUserById(String id){
+        String key = generateUserKey(id);
+        String userJson = redisTemplate.opsForValue().get(key);
+
+        if(userJson == null){
+            return null;
+        }
+        try{
+            return objectMapper.readValue(userJson,User.class);
+        }catch (Exception e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+    private String generateUserId(){
+        Long id = redisTemplate.opsForValue().increment("user:id");
+        return String.valueOf(id);
+    }
+    private String generateUserKey(String id){
+        return "user:" + id;
     }
 }
