@@ -1,5 +1,6 @@
 package Transaction.project.controller;
 
+import Transaction.project.model.Transaction;
 import Transaction.project.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -25,5 +26,11 @@ public class UserController {
         }
         return ResponseEntity.ok(user);
     }
-
+    @PostMapping("/transfer")
+    public String transfer(@RequestBody Transaction transaction){
+        return userService.transfer(
+                transaction.getFromId(),
+                transaction.getToId(),
+                transaction.getAmount());
+    }
 }

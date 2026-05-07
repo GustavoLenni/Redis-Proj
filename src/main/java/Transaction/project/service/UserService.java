@@ -17,14 +17,8 @@ public class UserService {
     public User createUser(User user){
         String id = generateUserId();
         user.setId(id);
-        String key = generateUserKey(id);
 
-        try{
-            String userJson = objectMapper.writeValueAsString(user);
-            redisTemplate.opsForValue().set(key,userJson);
-        }catch (Exception e){
-            e.printStackTrace();
-        }
+        saveUser(user);
         return user;
     }
     public User getUserById(String id){
@@ -39,6 +33,39 @@ public class UserService {
         }catch (Exception e){
             e.printStackTrace();
             return null;
+        }
+    }
+    public String transfer(String fromId, String toId, Double amount){
+        User sender = getUserById(fromId);
+        User receiver = getUserById(toId);
+
+        if(sender == null){
+            return "User not found";
+        }
+        if(receiver == null){
+            return "User not found";
+        }
+        if(sender.getBalance() < amount){
+            return "Insufficient balance";
+        }
+
+        sender.setBalance(sender.getBalance() - amount);
+        receiver.setBalance(receiver.getBalance() + amount);
+
+        saveUser(sender);
+        saveUser(receiver);
+        return "Transaction completed successfully";
+    }
+
+
+    private void saveUser(User user){
+        String key = generateUserKey(user.getId());
+
+        try{
+            String userJson = objectMapper.writeValueAsString(user);
+            redisTemplate.opsForValue().set(key,userJson);
+        }catch (Exception e){
+            e.printStackTrace();
         }
     }
     private String generateUserId(){
